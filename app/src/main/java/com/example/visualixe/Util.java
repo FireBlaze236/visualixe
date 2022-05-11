@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 
 public class Util {
@@ -54,47 +55,55 @@ public class Util {
         BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
 
-        ArrayList<Float> positions = new ArrayList<>();
-        ArrayList<Integer> indices = new ArrayList<>();
-
         String line = reader.readLine();
         while(line != null)
         {
             if(line.startsWith("v "))
             {
-                ParseAttributes("v", line, positions);
+                ParseAttributes("v", line, data.positions);
             }
-            if(line.startsWith("f "))
+            else if(line.startsWith("f "))
             {
-                ParseIndices("f", line, indices);
+                ParseIndices("f", line, data.indices, data.normalIndices, data.uvIndices);
+                data.faceCount++;
+            }
+            else if(line.startsWith("vt "))
+            {
+                ParseAttributes("vt", line, data.uv);
+            }
+            else if(line.startsWith("vn "))
+            {
+                ParseAttributes("vn", line, data.normals);
             }
             line = reader.readLine();
         }
 
-        float[] p = new float[positions.size()];
-        for(int i =0; i < positions.size(); i++) p[i] = positions.get(i);
-        int[] e = new int[indices.size()];
-        for(int i =0; i < indices.size(); i++) e[i] = indices.get(i);
-        data.positions = p;
-        data.indices = e;
 
         return data;
     }
 
-    private static void ParseAttributes(String attrib, String line, ArrayList<Float> list)
+    private static void ParseAttributes(String attrib, String line, ArrayList<Float[]> list)
     {
+
         if(line.startsWith(attrib))
         {
+            Float[] vert = new Float[3];
+            int count = 0;
             String[] content = line.split(" ");
             for(int i = 0; i < content.length; i++)
             {
                 if(!content[i].isEmpty() && !content[i].trim().equals(attrib))
-                    list.add( Float.parseFloat(content[i].trim()));
+                {
+                    vert[count] = Float.parseFloat(content[i].trim());
+                    count++;
+                }
             }
+
+            list.add(vert);
         }
     }
 
-    private static void ParseIndices(String face, String line, ArrayList<Integer> list)
+    private static void ParseIndices(String face, String line, ArrayList<Integer> vList, ArrayList<Integer> nList, ArrayList<Integer> tList)
     {
         if(line.startsWith(face))
         {
@@ -105,11 +114,49 @@ public class Util {
                 {
                     String[] indices = content[i].split("/");
                     //for(int j = 0; j < indices.length; j++)
-                    list.add( Integer.parseInt(indices[0].trim())); // add the first to vindex
+                    if(indices.length != 0)
+                    {
+                        //Remember to sub 1 as indexing is 1 based
+                        vList.add( Integer.parseInt(indices[0].trim())-1); // add the first to vindex
+                        if(indices.length > 1) tList.add(Integer.parseInt(indices[1].trim()) - 1);
+                        if(indices.length > 2) nList.add(Integer.parseInt(indices[2].trim()) - 1);
+                    }
+
                 }
 
             }
         }
+    }
+
+    public static float[] ArrayToFloat(ArrayList<Float> f)
+    {
+        float[] floats = new float[f.size()];
+        int i = 0;
+        for(Float fv : f)
+        {
+            floats[i] = fv;
+            i++;
+        }
+
+        return  floats;
+    }
+
+    public static int[] ArrayToInt(ArrayList<Integer> i)
+    {
+        int[] ints = new int[i.size()];
+        int c = 0;
+        for(Integer iv : i)
+        {
+            ints[c] = iv;
+            c++;
+        }
+
+        return ints;
+    }
+
+    public static float Clamp(float val, float max, float min)
+    {
+        return Math.max(min , Math.min(max, val));
     }
 
 }

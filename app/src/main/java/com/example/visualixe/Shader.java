@@ -27,6 +27,7 @@ public class Shader {
     private void LinkShaders(String vertexShaderCode, String fragmentShaderCode)
     {
         mProgram = GLES30.glCreateProgram();
+        Util.CheckOpenglErrors();
         int vertexShader = CompileShader(GLES30.GL_VERTEX_SHADER, vertexShaderCode);
         int fragmentShader = CompileShader(GLES30.GL_FRAGMENT_SHADER, fragmentShaderCode);
 

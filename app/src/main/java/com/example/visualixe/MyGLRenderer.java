@@ -1,26 +1,24 @@
 package com.example.visualixe;
 
-import android.app.Application;
 import android.content.Context;
+import android.opengl.GLES20;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
-import android.os.Debug;
-import android.os.SystemClock;
-import android.util.AndroidException;
 import android.util.Log;
 
-import java.io.IOException;
-import java.sql.Time;
-import java.util.Calendar;
-import java.util.Timer;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
 public class MyGLRenderer implements GLSurfaceView.Renderer {
+    private ArrayList<MeshData> allMeshData = new ArrayList<>();
+    private HashMap<String, Integer> meshNameToIndex = new HashMap<>();
 
-    private Mesh mMesh;
+    private ArrayList<Mesh> meshes = new ArrayList<>();
+
     private Context parentContext;
 
     MyGLRenderer(Context context)
@@ -30,80 +28,93 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
     }
     @Override
     public void onSurfaceCreated(GL10 gl10, EGLConfig eglConfig) {
-        GLES30.glClearColor(0.7f, 0.1f, 0.1f, 1.0f);
-        Matrix.setIdentityM(modelMatrix, 0);
+        Log.d("D", "onCreate");
+        GLES30.glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
 
-        String vertexShader = new String(), fragmentShader = new String();
-        try {
-            vertexShader = Util.LoadShaderCodeFromFile(parentContext, "shader.vert");
-        } catch (IOException e) {
-            e.printStackTrace();
+        meshes.clear();
+        for(MeshData m :allMeshData)
+        {
+            Mesh mesh = new Mesh(m);
+            meshes.add(mesh);
         }
-
-
-        try {
-            fragmentShader = Util.LoadShaderCodeFromFile(parentContext, "shader.frag");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        MeshData data = new MeshData();
-        try {
-             data = Util.LoadObj(parentContext, "torus.obj");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        mMesh = new Mesh(data, vertexShader, fragmentShader);
-
     }
     private final float[] vPMatrix = new float[16];
     private final float[] projectionMatrix = new float[16];
     private final float[] viewMatrix = new float[16];
 
-    private float[] modelMatrix = new float[16];
 
-    private float[] pos = new float[] {0.0f, 0.0f, -3.0f};
 
     @Override
     public void onSurfaceChanged(GL10 unused, int width, int height) {
         GLES30.glViewport(0, 0, width, height);
+        GLES30.glEnable(GLES20.GL_DEPTH_TEST);
 
         float ratio = (float) width / height;
 
-        // this projection matrix is applied to object coordinates
-        // in the onDrawFrame() method
-
-        Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
-
-        Matrix.setIdentityM(modelMatrix, 0);
+        Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 100);
     }
 
     @Override
     public void onDrawFrame(GL10 gl10) {
         GLES30.glClear(GLES30.GL_COLOR_BUFFER_BIT | GLES30.GL_DEPTH_BUFFER_BIT);
 
+
         // Set the camera position (View matrix)
-        Matrix.setLookAtM(viewMatrix, 0, 0, 0, 3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+        Matrix.setLookAtM(viewMatrix, 0, 0, 0, 10, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
-
-        float now = SystemClock.uptimeMillis() % 40000L;
-        float angle = 0.090f * ((int) now);
-        //Log.d("DEUBG",Float.toString(now));
-
-        Matrix.setRotateM(modelMatrix, 0, mAngle, 0.0f, 0.0f, -1.0f);
-        Matrix.translateM(modelMatrix, 0, 0, 0, -3f);
-
-        mMesh.draw(modelMatrix, viewMatrix, projectionMatrix);
+        //Render mesh
+        for (Mesh m : meshes) {
+            m.draw(viewMatrix, projectionMatrix);
+        }
     }
 
-
-
-    public volatile float mAngle;
-
-    public float getAngle() {
-        return mAngle;
+    public void AddMesh(MeshData m, String name)
+    {
+        allMeshData.add(m);
+        meshNameToIndex.put(name, allMeshData.size() - 1);
     }
 
-    public void setAngle(float angle) {
-        mAngle = angle;
+    private Mesh GetMeshInstanceByName(String name)
+    {
+        if(meshNameToIndex.containsKey(name))
+        {
+            int idx = meshNameToIndex.get(name);
+            if(meshes.size() > idx)
+            {
+                return  meshes.get(idx);
+            }
+        }
+        return null;
     }
+
+    public void SetMeshRotation(String name, float angle, float x, float y, float z)
+    {
+        GetMeshInstanceByName(name).RotateMesh(angle, x, y, z);
+    }
+
+    public void SetMeshTranslation(String name, float amount, float x, float y, float z)
+    {
+        GetMeshInstanceByName(name).MoveMesh(amount, x, y, z);
+    }
+
+    public void SetMeshScale(String name, float amount, float x, float y, float z)
+    {
+        GetMeshInstanceByName(name).ScaleMesh(amount, x, y, z);
+    }
+
+    public float[] GetMeshRotationAxis(String name)
+    {
+        return  GetMeshInstanceByName(name).GetRotationAxis();
+    }
+
+    public float[] GetMeshPosition(String name)
+    {
+        return GetMeshInstanceByName(name).GetPosition();
+    }
+
+    public float[] GetMeshScaleAxis(String name)
+    {
+        return GetMeshInstanceByName(name).GetScale();
+    }
+
 }
