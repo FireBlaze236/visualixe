@@ -30,30 +30,9 @@ public class Util {
         };
     }
 
-    public static String LoadShaderCodeFromFile(Context context, String filepath) throws IOException {
-        AssetManager am = context.getAssets();
-        InputStream inputStream = am.open(filepath);
-        StringBuilder stringBuilder = new StringBuilder();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
-        String line = reader.readLine();
-        while(line != null)
-        {
-            stringBuilder.append(line).append("\n");
-            line = reader.readLine();
-        }
-
-        return stringBuilder.toString();
-    }
-
-    public static MeshData LoadObj(Context context, String filepath) throws IOException {
+    private static MeshData ParseObjFile(InputStream is) throws IOException {
         MeshData data = new MeshData();
-
-
-        AssetManager am = context.getAssets();
-        InputStream inputStream = am.open(filepath);
-        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-
+        BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
         String line = reader.readLine();
         while(line != null)
@@ -78,6 +57,39 @@ public class Util {
             line = reader.readLine();
         }
 
+
+        return data;
+    }
+
+    public static String LoadShaderCodeFromFile(Context context, String filepath) throws IOException {
+        AssetManager am = context.getAssets();
+        InputStream inputStream = am.open(filepath);
+        StringBuilder stringBuilder = new StringBuilder();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+
+        String line = reader.readLine();
+        while(line != null)
+        {
+            stringBuilder.append(line).append("\n");
+            line = reader.readLine();
+        }
+
+        return stringBuilder.toString();
+    }
+
+    public static MeshData LoadObjFromFile(InputStream file) throws IOException {
+        MeshData data = new MeshData();
+        data = ParseObjFile(file);
+        return data;
+    }
+
+    public static MeshData LoadObjInternal(Context context, String filepath) throws IOException {
+        MeshData data = new MeshData();
+
+        AssetManager am = context.getAssets();
+        InputStream inputStream = am.open(filepath);
+
+        data = ParseObjFile(inputStream);
 
         return data;
     }

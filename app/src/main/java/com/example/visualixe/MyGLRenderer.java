@@ -52,6 +52,13 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         float ratio = (float) width / height;
 
         Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 100);
+
+        meshes.clear();
+        for(MeshData m :allMeshData)
+        {
+            Mesh mesh = new Mesh(m);
+            meshes.add(mesh);
+        }
     }
 
     @Override
@@ -66,6 +73,7 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
         for (Mesh m : meshes) {
             m.draw(viewMatrix, projectionMatrix);
         }
+
     }
 
     public void AddMesh(MeshData m, String name)
@@ -89,32 +97,78 @@ public class MyGLRenderer implements GLSurfaceView.Renderer {
 
     public void SetMeshRotation(String name, float angle, float x, float y, float z)
     {
-        GetMeshInstanceByName(name).RotateMesh(angle, x, y, z);
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+            m.RotateMesh(angle, x, y, z);
     }
 
     public void SetMeshTranslation(String name, float amount, float x, float y, float z)
     {
-        GetMeshInstanceByName(name).MoveMesh(amount, x, y, z);
+        if(name == "Light")
+        {
+            for(Mesh m : meshes)
+                m.MoveLight(amount, x, y, z);
+            return;
+        }
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+            m.MoveMesh(amount, x, y, z);
     }
 
     public void SetMeshScale(String name, float amount, float x, float y, float z)
     {
-        GetMeshInstanceByName(name).ScaleMesh(amount, x, y, z);
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+            m.ScaleMesh(amount, x, y, z);
     }
 
     public float[] GetMeshRotationAxis(String name)
     {
-        return  GetMeshInstanceByName(name).GetRotationAxis();
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+           return m.GetRotationAxis();
+        else
+            return new float[] {0.0f, 1.0f, 0.0f};
     }
 
     public float[] GetMeshPosition(String name)
     {
-        return GetMeshInstanceByName(name).GetPosition();
+        if(name == "Light"){
+            if(!meshes.isEmpty()) return meshes.get(0).GetLightPos();
+        }
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+           return m.GetPosition();
+        else
+            return new float[] {0.0f, 0.0f, 0.0f};
     }
 
     public float[] GetMeshScaleAxis(String name)
     {
-        return GetMeshInstanceByName(name).GetScale();
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+           return m.GetScale();
+        else
+            return new float[] {1.0f, 1.0f, 1.0f};
+    }
+
+    public void SetHideMesh(String name, boolean value)
+    {
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+        {
+            m.hidden = value;
+        }
+    }
+
+    public boolean GetHideMesh(String name)
+    {
+        Mesh m = GetMeshInstanceByName(name);
+        if(m != null)
+        {
+            return m.hidden;
+        }
+        return false;
     }
 
 }

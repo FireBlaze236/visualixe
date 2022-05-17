@@ -112,5 +112,17 @@
             android:layout_height="48dp"
             android:isScrollContainer="false" />
 
+        <Button
+            android:id="@+id/open_button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Open" />
+
+        <CheckBox
+            android:id="@+id/hideCheck"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Hide" />
+
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

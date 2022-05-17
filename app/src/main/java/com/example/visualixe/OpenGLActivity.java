@@ -1,6 +1,8 @@
 package com.example.visualixe;
 
 import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.MotionEvent;
 import android.view.View;
@@ -8,37 +10,60 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-public class OpenGLActivity extends Activity {
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.util.ArrayList;
+
+public class OpenGLActivity extends Activity{
 
     private MyGLSurfaceView glView;
     private LinearLayout container;
     private Spinner propertySpinner;
     private Spinner objectSpinner;
-    private String[] objectOptions = {"Object", "Light"};
+    private ArrayList<String> objectOptions = new ArrayList<>();
     private String currentObject;
 
-    private String[] propertyOptions = {"Rotate", "Move", "Scale"};
+    private ArrayList<String>  propertyOptions = new ArrayList<>();
     private String currentOption;
 
     private Button applyButton;
+    private Button openButton;
 
     private EditText x_text, y_text, z_text;
     private TextView x_disp, y_disp, z_disp;
 
+    private CheckBox hideCheckBox;
+
+    static final int REQUEST_OBJECT_FILE = 1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        propertyOptions.add("Rotate");
+        propertyOptions.add("Move");
+        propertyOptions.add("Scale");
+
+        objectOptions.add("Light");
+        objectOptions.add("Mesh");
+
         glView = new MyGLSurfaceView(this.getApplicationContext());
         setContentView(R.layout.activity_open_glactivity);
 
-
+        hideCheckBox = findViewById(R.id.hideCheck);
+        hideCheckBox.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                glView.SetMeshHide(b);
+            }
+        });
 
         container = (LinearLayout) findViewById(R.id.mainContainer);
 
@@ -55,6 +80,7 @@ public class OpenGLActivity extends Activity {
         z_disp = findViewById(R.id.val_z);
 
         applyButton = findViewById(R.id.apply_button);
+        openButton = findViewById(R.id.open_button);
 
         UpdateSelectionValues();
         applyButton.setOnClickListener(new View.OnClickListener() {
@@ -73,13 +99,26 @@ public class OpenGLActivity extends Activity {
         objectSpinner = findViewById(R.id.object_spinner);
         PrepareSpinner(objectSpinner, objectOptions);
 
+        objectSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                glView.setSelectedMesh(objectOptions.get(i));
+                hideCheckBox.setChecked(glView.IsSelectedMeshHidden());
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
         propertySpinner = findViewById(R.id.property_spinner);
         PrepareSpinner(propertySpinner, propertyOptions);
 
         propertySpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-                currentOption = propertyOptions[i];
+                currentOption = propertyOptions.get(i);
 
                 switch (currentOption)
                 {
@@ -99,7 +138,7 @@ public class OpenGLActivity extends Activity {
 
             @Override
             public void onNothingSelected(AdapterView<?> adapterView) {
-                currentOption = propertyOptions[0];
+                currentOption = propertyOptions.get(0);
                 glView.setTransformMode(TRANSFORM_MODE.ROTATE);
                 UpdateDisplayValues();
             }
@@ -113,6 +152,13 @@ public class OpenGLActivity extends Activity {
             }
         });
 
+        openButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                OpenFile();
+                openButton.setVisibility(View.INVISIBLE);
+            }
+        });
 
 
     }
@@ -140,10 +186,43 @@ public class OpenGLActivity extends Activity {
         z_text.setText(String.valueOf(prevVal[2]));
     }
 
-    private void PrepareSpinner(Spinner s, String[] options)
+    private void PrepareSpinner(Spinner s, ArrayList<String> options)
     {
         ArrayAdapter aa =new ArrayAdapter(this, R.layout.support_simple_spinner_dropdown_item, options);
         aa.setDropDownViewResource(R.layout.support_simple_spinner_dropdown_item);
         s.setAdapter(aa);
+    }
+
+
+    private void OpenFile()
+    {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        intent.setType("application/*");
+        if (intent.resolveActivity(getPackageManager()) != null) {
+            startActivityForResult(intent, REQUEST_OBJECT_FILE);
+        }
+    }
+    private void LoadFile(InputStream file, String name)
+    {
+        glView.LoadMeshFromFile(file, name);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode == REQUEST_OBJECT_FILE && resultCode == RESULT_OK)
+        {
+            Uri uri = data.getData();
+            String name = uri.getLastPathSegment();
+            objectOptions.add(name);
+            try {
+                LoadFile(getContentResolver().openInputStream(uri), name);
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+
+
+
+        }
     }
 }

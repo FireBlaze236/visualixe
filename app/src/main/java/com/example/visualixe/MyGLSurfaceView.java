@@ -6,11 +6,13 @@ import android.util.AttributeSet;
 import android.view.MotionEvent;
 
 import java.io.IOException;
+import java.io.InputStream;
 
 enum TRANSFORM_MODE {MOVE, ROTATE, SCALE, SET_POS};
 
 public class MyGLSurfaceView extends GLSurfaceView {
     private MyGLRenderer renderer;
+    String vertexShader = new String(), fragmentShader = new String();
 
     private final float TOUCH_SCALE_FACTOR = 180.0f / 320;
     private float previousX;
@@ -19,7 +21,7 @@ public class MyGLSurfaceView extends GLSurfaceView {
     Context parentContext;
 
     private TRANSFORM_MODE currentMode = TRANSFORM_MODE.ROTATE;
-    private String selectedMesh = "Object";
+    private String selectedMesh = "Mesh";
     private float[] selectedAxis = new float[]{0f, 1f, 0f};
 
     private void init(Context context)
@@ -29,30 +31,8 @@ public class MyGLSurfaceView extends GLSurfaceView {
         setEGLConfigChooser(true);
         renderer = new MyGLRenderer(context);
         setRenderer(renderer);
-
-        String vertexShader = new String(), fragmentShader = new String(),
-                vertexLight = new String(), fragmentLight = new String();
-        try {
-            vertexShader = Util.LoadShaderCodeFromFile(context, "shader.vert");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        try {
-            fragmentShader = Util.LoadShaderCodeFromFile(context, "shader.frag");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        MeshData data = new MeshData();
-        try {
-            data = Util.LoadObj(context, "box.obj");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        data.LoadShaders(vertexShader, fragmentShader);
-        renderer.AddMesh(data, "Object");
+        LoadShaders();
+        LoadMeshInternal("torus.obj");
     }
     public MyGLSurfaceView(Context context)
     {
@@ -157,5 +137,60 @@ public class MyGLSurfaceView extends GLSurfaceView {
 
     public float[] getSelectedAxis() {
         return selectedAxis.clone();
+    }
+
+    public void LoadShaders()
+    {
+        try {
+            vertexShader = Util.LoadShaderCodeFromFile(parentContext, "shader.vert");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        try {
+            fragmentShader = Util.LoadShaderCodeFromFile(parentContext, "shader.frag");
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void LoadMeshInternal(String filename)
+    {
+
+
+        MeshData data = new MeshData();
+        try {
+            data = Util.LoadObjInternal(parentContext, filename);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        data.LoadShaders(vertexShader, fragmentShader);
+        renderer.AddMesh(data, "Mesh");
+    }
+
+    public void LoadMeshFromFile(InputStream file, String name)
+    {
+        MeshData data = new MeshData();
+
+        try {
+            data = Util.LoadObjFromFile(file);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        data.LoadShaders(vertexShader, fragmentShader);
+        renderer.AddMesh(data, name);
+
+        requestRender();
+    }
+
+    public void SetMeshHide(boolean value)
+    {
+        renderer.SetHideMesh(selectedMesh, value);
+    }
+
+    public boolean IsSelectedMeshHidden(){
+        return renderer.GetHideMesh(selectedMesh);
     }
 }
